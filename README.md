@@ -14,7 +14,7 @@ This is an **unofficial workaround**. Since Anthropic doesn't provide an officia
 
 ```bash
 # Download the script
-curl -o ~/.local/bin/cc-model-detector https://raw.githubusercontent.com/YOUR-USERNAME/cc-model-detector/main/cc-model-detector
+curl -o ~/.local/bin/cc-model-detector https://raw.githubusercontent.com/daveremy/cc-model-detector/main/cc-model-detector
 chmod +x ~/.local/bin/cc-model-detector
 ```
 
