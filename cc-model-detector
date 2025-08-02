@@ -1,0 +1,100 @@
+#!/bin/bash
+# claude-model-detector-portable.sh - Detect active Claude model from JSONL files
+# Works in any Claude project directory
+
+# Function to check if we're in a Claude project
+is_claude_project() {
+    local current_dir=$(pwd)
+    local project_name=$(echo "$current_dir" | sed "s|$HOME/||" | sed 's|[/.]|-|g')
+    local project_dir="$HOME/.claude/projects/-Users-${USER}-${project_name}"
+    
+    if [ -d "$project_dir" ]; then
+        return 0
+    fi
+    
+    # Try without -Users prefix
+    project_dir="$HOME/.claude/projects/${project_name}"
+    if [ -d "$project_dir" ]; then
+        return 0
+    fi
+    
+    return 1
+}
+
+# Function to get the most recent model from JSONL files
+get_latest_model() {
+    local current_dir=$(pwd)
+    local project_name=$(echo "$current_dir" | sed "s|$HOME/||" | sed 's|[/.]|-|g')
+    local project_dir="$HOME/.claude/projects/-Users-${USER}-${project_name}"
+    
+    if [ ! -d "$project_dir" ]; then
+        # Try without -Users prefix
+        project_dir="$HOME/.claude/projects/${project_name}"
+        if [ ! -d "$project_dir" ]; then
+            return 1
+        fi
+    fi
+    
+    # Get the most recent JSONL file
+    local latest_file=$(find "$project_dir" -name "*.jsonl" -type f -exec ls -t {} + 2>/dev/null | head -1)
+    
+    if [ -z "$latest_file" ]; then
+        return 1
+    fi
+    
+    # Extract the last model entry from the file
+    local model=$(tail -100 "$latest_file" 2>/dev/null | grep -o '"model"[[:space:]]*:[[:space:]]*"[^"]*"' | tail -1 | cut -d'"' -f4)
+    
+    if [ -n "$model" ]; then
+        echo "$model"
+        return 0
+    else
+        return 1
+    fi
+}
+
+# Function to format model name for status bar
+format_model_name() {
+    local model="$1"
+    case "$model" in
+        *opus*) echo "Opus" ;;
+        *sonnet*) echo "Sonnet" ;;
+        *haiku*) echo "Haiku" ;;
+        *) echo "${model##*-}" ;;  # Get last part after -
+    esac
+}
+
+# Main execution
+if ! is_claude_project; then
+    # Not in a Claude project, don't show anything
+    exit 0
+fi
+
+if [ "$1" = "raw" ]; then
+    # Return raw model name
+    MODEL=$(get_latest_model)
+    [ $? -eq 0 ] && echo "$MODEL"
+elif [ "$1" = "watch" ]; then
+    # Watch mode for testing
+    while true; do
+        if MODEL=$(get_latest_model); then
+            echo "[$(date '+%H:%M:%S')] Model: $MODEL"
+        else
+            echo "[$(date '+%H:%M:%S')] No model detected"
+        fi
+        sleep 2
+    done
+else
+    # tmux status bar format
+    if MODEL=$(get_latest_model); then
+        SHORT_NAME=$(format_model_name "$MODEL")
+        # Add emoji based on model
+        case "$MODEL" in
+            *opus*) echo "🎭 $SHORT_NAME" ;;
+            *sonnet*) echo "🎵 $SHORT_NAME" ;;
+            *haiku*) echo "🌸 $SHORT_NAME" ;;
+            *) echo "🤖 $SHORT_NAME" ;;
+        esac
+    fi
+    # If not in Claude project or no model found, output nothing
+fi
