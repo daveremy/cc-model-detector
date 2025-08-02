@@ -2,6 +2,8 @@
 
 **Experimental script** that attempts to detect which Claude model (Opus/Sonnet/Haiku) is currently active in Claude Code.
 
+![Demo showing Opus model in tmux status bar](images/demo.png)
+
 ## ⚠️ Important Disclaimer
 
 This is an **unofficial workaround**. Since Anthropic doesn't provide an official way to detect the active model, this script reads from local JSONL log files and shows the most recently used model. This means:
